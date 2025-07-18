@@ -3,164 +3,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Fish Pond Simulation</title>
+    <title>Smart Aqua-Farm Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8;
+            background-color: #f8fafc; /* Slate 50 */
+            color: #334155; /* Slate 700 */
         }
         .btn {
             transition: all 0.2s ease-in-out;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
         }
         .btn:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         .btn:disabled {
             cursor: not-allowed;
             opacity: 0.6;
         }
-        .status-ok { color: #22c55e; font-weight: 600; }
-        .status-warning { color: #f59e0b; font-weight: 600; }
-        .status-critical { color: #ef4444; font-weight: 600; }
-        .status-offline { color: #64748b; font-weight: 600; }
-        .battery-bar-outer {
-            background-color: #e5e7eb;
-            border-radius: 9999px;
-            overflow: hidden;
-            height: 0.75rem;
-            width: 100%;
+        .card {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0; /* Slate 200 */
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+            transition: all 0.3s ease-in-out;
         }
-        .battery-bar-inner {
-            height: 100%;
-            border-radius: 9999px;
-            transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -4px rgba(0,0,0,0.07);
         }
-        .chart-container {
+        .status-ok { color: #16a34a; /* Green 600 */ }
+        .status-warning { color: #f97316; /* Orange 500 */ }
+        .status-critical { color: #dc2626; /* Red 600 */ }
+        
+        .value-pop {
+            animation: value-pop 0.4s ease-out;
+        }
+        @keyframes value-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); color: #0284c7; } /* Light Blue 600 */
+            100% { transform: scale(1); }
+        }
+        .pond-bg {
+            background: linear-gradient(to top, #7dd3fc, #e0f2fe); /* Sky 300 to 100 */
             position: relative;
-            height: 60px;
-            width: 100%;
+            overflow: hidden;
+        }
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 100px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 100" preserveAspectRatio="none"><path d="M 0 50 C 200 100, 400 0, 600 50 S 800 100, 800 50 V 100 H 0 Z" fill="rgba(56, 189, 248, 0.4)"/></svg>');
+            background-size: 50% 100px;
+            animation: wave-flow 12s linear infinite;
+        }
+        @keyframes wave-flow {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .bubble {
+            position: absolute;
+            bottom: -30px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: rise 8s infinite ease-in;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+        @keyframes rise {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-250px) scale(0.3); opacity: 0; }
+        }
+        .fish-asset {
+            animation: swim 10s ease-in-out infinite;
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.1));
+        }
+        @keyframes swim {
+            0%, 100% { transform: translateX(-20%) rotate(-8deg); }
+            50% { transform: translateX(20%) rotate(8deg); }
         }
     </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Add Font Awesome for icons
+        const fontAwesomeScript = document.createElement('script');
+        fontAwesomeScript.src = 'https://kit.fontawesome.com/a076d05399.js';
+        fontAwesomeScript.crossOrigin = 'anonymous';
+        document.head.appendChild(fontAwesomeScript);
+    </script>
 </head>
-<body class="bg-slate-100 text-slate-800 p-4 sm:p-6 lg:p-8">
+<body class="p-4 sm:p-6 lg:p-8">
 
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-screen-xl mx-auto">
         <!-- Header -->
-        <header class="mb-6">
-            <h1 class="text-3xl sm:text-4xl font-bold text-slate-900">Advanced Fish Pond Dashboard</h1>
-            <p class="text-slate-600 mt-1">Live data charts, interactive events, and Dissolved Oxygen simulation.</p>
+        <header class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl sm:text-4xl font-bold text-slate-800">Smart Aqua-Farm Dashboard</h1>
+                <p class="text-slate-500 mt-1">Advanced real-time pond monitoring and management.</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <label for="fish-select" class="text-sm font-medium">Fish Species:</label>
+                <select id="fish-select" class="bg-white border border-slate-300 rounded-md px-3 py-2 text-slate-700 focus:ring-2 focus:ring-sky-500 focus:outline-none shadow-sm">
+                    <option value="tilapia">Tilapia</option>
+                    <option value="catfish">Catfish</option>
+                    <option value="trout">Trout</option>
+                </select>
+            </div>
         </header>
 
-        <!-- Controls and Status -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div class="md:col-span-2 bg-white p-4 rounded-lg shadow">
-                <h2 class="text-lg font-semibold mb-3">System Controls</h2>
-                <div class="flex flex-wrap gap-4">
-                    <button id="feed-btn" class="btn bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700">Feed Fish</button>
-                    <button id="rain-btn" class="btn bg-teal-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-teal-600">Simulate Rainfall</button>
-                    <button id="aerator-btn" class="btn bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700">Turn On Aerator</button>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column: Pond & Controls -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                <!-- Pond Overview Card -->
+                <div class="card">
+                    <h2 class="text-xl font-semibold text-slate-700 mb-3">Pond Overview</h2>
+                    <div id="pond-visual" class="pond-bg h-48 rounded-lg mb-4 flex items-center justify-center">
+                        <div class="wave"></div>
+                        <div class="wave" style="animation-delay: -3s; animation-duration: 12s; opacity: 0.7;"></div>
+                        <img id="fish-image" src="" alt="Fish" class="h-24 opacity-90 fish-asset" style="z-index: 10;"/>
+                    </div>
+                    <div class="text-center">
+                        <h3 id="fish-name" class="text-2xl font-bold text-slate-800"></h3>
+                        <p class="text-sm text-slate-500">Overall Health</p>
+                        <p id="pond-health" class="font-bold text-4xl mt-1"></p>
+                    </div>
+                </div>
+
+                <!-- Controls Card -->
+                <div class="card">
+                    <h2 class="text-xl font-semibold text-slate-700 mb-4">System Controls</h2>
+                    <div class="flex flex-col gap-3">
+                        <button id="feed-btn" class="btn w-full bg-sky-500 text-white hover:bg-sky-600">Feed Fish</button>
+                        <button id="rain-btn" class="btn w-full bg-blue-500 text-white hover:bg-blue-600">Simulate Rainfall</button>
+                        <button id="aerator-btn" class="btn w-full bg-green-500 text-white hover:bg-green-600">Toggle Aerator</button>
+                    </div>
                 </div>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow">
-                <h2 class="text-lg font-semibold mb-2">Last Event</h2>
-                <p id="status-message" class="text-slate-700 h-full flex items-center">Simulation started. System is nominal.</p>
+
+            <!-- Right Column: Sensor Grid -->
+            <div id="sensor-grid" class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- Sensor cards will be dynamically inserted here -->
             </div>
         </div>
 
-        <!-- Sensor Data Table -->
-        <div class="bg-white rounded-lg shadow overflow-x-auto">
-            <table class="w-full text-left">
-                <thead class="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                        <th class="p-4 text-sm font-semibold text-slate-600">Parameter</th>
-                        <th class="p-4 text-sm font-semibold text-slate-600">Value</th>
-                        <th class="p-4 text-sm font-semibold text-slate-600">Status</th>
-                        <th class="p-4 text-sm font-semibold text-slate-600 w-1/6">Trend (1 min)</th>
-                        <th class="p-4 text-sm font-semibold text-slate-600 w-1/6">Battery</th>
-                        <th class="p-4 text-sm font-semibold text-slate-600">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="sensor-table-body">
-                    <!-- Sensor rows will be dynamically inserted here -->
-                </tbody>
-            </table>
+        <!-- Event Log and Alerts -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <div class="lg:col-span-2 card">
+                <h2 class="text-xl font-semibold text-slate-700 mb-3">Event Log</h2>
+                <div id="event-log" class="h-48 overflow-y-auto text-sm space-y-2 pr-2 text-slate-600">
+                    <!-- Log messages will be inserted here -->
+                </div>
+            </div>
+            <div class="card">
+                <h2 class="text-xl font-semibold text-slate-700 mb-3">Active Alerts</h2>
+                <div id="alert-panel" class="h-48 overflow-y-auto text-sm space-y-2">
+                    <!-- Alerts will be inserted here -->
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        const SIMULATION_INTERVAL_MS = 2000; // Update every 2 seconds
-        const MAX_HISTORY_POINTS = 30; // 30 points * 2s = 1 minute of history
+        const SIMULATION_INTERVAL_MS = 2000;
+        const MAX_HISTORY_POINTS = 30;
 
-        const sensors = {
-            "Dissolved Oxygen": {
-                value: 8.0, fluctuation: 0.05, minVal: 0, maxVal: 15, unit: "mg/L",
-                battery: 100.0, drainRate: 0.09,
-                safeRange: [6.0, 12.0], criticalRange: [4.0, 14.0],
-                history: [], chart: null
+        const sensorIcons = {
+            "Dissolved Oxygen": '<i class="fas fa-wind text-sky-400"></i>',
+            "pH": '<i class="fas fa-flask text-indigo-400"></i>',
+            "Ammonia (NH3)": '<i class="fas fa-biohazard text-yellow-400"></i>',
+            "Nitrite (NO2)": '<i class="fas fa-exclamation-triangle text-orange-400"></i>',
+            "Nitrate (NO3)": '<i class="fas fa-seedling text-green-400"></i>',
+            "Suspended Solids": '<i class="fas fa-cloud text-slate-400"></i>',
+            "Salinity": '<i class="fas fa-gem text-pink-400"></i>',
+            "Water Level": '<i class="fas fa-ruler-vertical text-blue-400"></i>'
+        };
+
+        const fishSpecies = {
+            tilapia: {
+                name: "Tilapia",
+                image: "https://purepng.com/public/uploads/large/purepng.com-tilapia-fishtilapia-fishcombre-cichlid-family-tilapiines-2315223298628jbiw.png",
+                params: {
+                    "Dissolved Oxygen": { safeRange: [5.0, 10.0], criticalRange: [3.0, 12.0] },
+                    "pH": { safeRange: [6.5, 9.0], criticalRange: [6.0, 9.5] },
+                    "Ammonia (NH3)": { safeRange: [0, 0.1], criticalRange: [0, 0.5] },
+                    "Nitrite (NO2)": { safeRange: [0, 0.75], criticalRange: [0, 1.5] },
+                    "Nitrate (NO3)": { safeRange: [0, 50], criticalRange: [0, 100] },
+                    "Suspended Solids": { safeRange: [0, 80], criticalRange: [0, 150] },
+                    "Salinity": { safeRange: [0, 2.0], criticalRange: [0, 5.0] },
+                    "Water Level": { safeRange: [3.0, 4.8], criticalRange: [2.0, 4.9] }
+                }
             },
-            "pH": {
-                value: 7.8, fluctuation: 0.05, minVal: 6.0, maxVal: 9.5, unit: "",
-                battery: 100.0, drainRate: 0.1,
-                safeRange: [7.0, 8.5], criticalRange: [6.5, 9.0],
-                history: [], chart: null
+            catfish: {
+                name: "Catfish",
+                image: "https://www.pngall.com/wp-content/uploads/2016/04/Catfish-PNG-Clipart.png",
+                params: {
+                    "Dissolved Oxygen": { safeRange: [4.0, 9.0], criticalRange: [2.5, 11.0] },
+                    "pH": { safeRange: [6.8, 8.2], criticalRange: [6.2, 8.8] },
+                    "Ammonia (NH3)": { safeRange: [0, 0.2], criticalRange: [0, 0.7] },
+                    "Nitrite (NO2)": { safeRange: [0, 0.5], criticalRange: [0, 1.2] },
+                    "Nitrate (NO3)": { safeRange: [0, 60], criticalRange: [0, 120] },
+                    "Suspended Solids": { safeRange: [0, 100], criticalRange: [0, 200] },
+                    "Salinity": { safeRange: [0, 1.0], criticalRange: [0, 3.0] },
+                    "Water Level": { safeRange: [3.5, 4.9], criticalRange: [2.5, 5.0] }
+                }
             },
-            "Ammonia (NH3)": {
-                value: 0.05, fluctuation: 0.01, minVal: 0, maxVal: 2, unit: "mg/L",
-                battery: 100.0, drainRate: 0.15,
-                safeRange: [0, 0.1], criticalRange: [0, 0.25],
-                history: [], chart: null
-            },
-            "Nitrite (NO2)": {
-                value: 0.1, fluctuation: 0.01, minVal: 0, maxVal: 5, unit: "mg/L",
-                battery: 100.0, drainRate: 0.15,
-                safeRange: [0, 0.5], criticalRange: [0, 1.0],
-                history: [], chart: null
-            },
-            "Nitrate (NO3)": {
-                value: 20, fluctuation: 1, minVal: 0, maxVal: 100, unit: "mg/L",
-                battery: 100.0, drainRate: 0.15,
-                safeRange: [0, 40], criticalRange: [0, 80],
-                history: [], chart: null
-            },
-            "Suspended Solids": {
-                value: 25, fluctuation: 2, minVal: 0, maxVal: 200, unit: "mg/L",
-                battery: 100.0, drainRate: 0.12,
-                safeRange: [0, 50], criticalRange: [0, 80],
-                history: [], chart: null
-            },
-            "Salinity": {
-                value: 0.5, fluctuation: 0.02, minVal: 0, maxVal: 10, unit: "ppt",
-                battery: 100.0, drainRate: 0.08,
-                safeRange: [0, 2.0], criticalRange: [0, 4.0],
-                history: [], chart: null
-            },
-            "Water Level": {
-                value: 4.5, fluctuation: 0.01, minVal: 1.0, maxVal: 5.0, unit: "m",
-                battery: 100.0, drainRate: 0.05,
-                safeRange: [3.0, 4.8], criticalRange: [2.0, 4.9],
-                history: [], chart: null
+            trout: {
+                name: "Trout",
+                image: "https://pngimg.com/uploads/trout/trout_PNG1.png",
+                params: {
+                    "Dissolved Oxygen": { safeRange: [6.5, 12.0], criticalRange: [5.0, 14.0] },
+                    "pH": { safeRange: [6.7, 8.0], criticalRange: [6.0, 8.5] },
+                    "Ammonia (NH3)": { safeRange: [0, 0.05], criticalRange: [0, 0.1] },
+                    "Nitrite (NO2)": { safeRange: [0, 0.2], criticalRange: [0, 0.5] },
+                    "Nitrate (NO3)": { safeRange: [0, 30], criticalRange: [0, 60] },
+                    "Suspended Solids": { safeRange: [0, 30], criticalRange: [0, 60] },
+                    "Salinity": { safeRange: [0, 0.5], criticalRange: [0, 1.0] },
+                    "Water Level": { safeRange: [4.0, 4.9], criticalRange: [3.0, 5.0] }
+                }
             }
         };
 
+        let currentFish = 'tilapia';
+        let aeratorOn = false;
+
+        const sensors = {
+            "Dissolved Oxygen": { value: 8.0, fluctuation: 0.05, minVal: 0, maxVal: 15, unit: "mg/L", history: [], chart: null },
+            "pH": { value: 7.8, fluctuation: 0.05, minVal: 6.0, maxVal: 9.5, unit: "", history: [], chart: null },
+            "Ammonia (NH3)": { value: 0.05, fluctuation: 0.01, minVal: 0, maxVal: 2, unit: "mg/L", history: [], chart: null },
+            "Nitrite (NO2)": { value: 0.1, fluctuation: 0.01, minVal: 0, maxVal: 5, unit: "mg/L", history: [], chart: null },
+            "Nitrate (NO3)": { value: 20, fluctuation: 1, minVal: 0, maxVal: 100, unit: "mg/L", history: [], chart: null },
+            "Suspended Solids": { value: 25, fluctuation: 2, minVal: 0, maxVal: 200, unit: "mg/L", history: [], chart: null },
+            "Salinity": { value: 0.5, fluctuation: 0.02, minVal: 0, maxVal: 10, unit: "ppt", history: [], chart: null },
+            "Water Level": { value: 4.5, fluctuation: 0.01, minVal: 1.0, maxVal: 5.0, unit: "m", history: [], chart: null }
+        };
+
         const dom = {
+            fishSelect: document.getElementById('fish-select'),
+            fishImage: document.getElementById('fish-image'),
+            fishName: document.getElementById('fish-name'),
+            pondHealth: document.getElementById('pond-health'),
+            pondVisual: document.getElementById('pond-visual'),
             feedBtn: document.getElementById('feed-btn'),
             rainBtn: document.getElementById('rain-btn'),
             aeratorBtn: document.getElementById('aerator-btn'),
-            statusMessageEl: document.getElementById('status-message'),
-            tableBody: document.getElementById('sensor-table-body')
+            sensorGrid: document.getElementById('sensor-grid'),
+            eventLog: document.getElementById('event-log'),
+            alertPanel: document.getElementById('alert-panel')
         };
 
-        // --- Event Functions ---
+        function logEvent(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('p');
+            logEntry.innerHTML = `<span class="font-semibold text-slate-400">${timestamp}</span>: ${message}`;
+            dom.eventLog.prepend(logEntry);
+            if (dom.eventLog.children.length > 50) {
+                dom.eventLog.lastChild.remove();
+            }
+        }
+
         function simulateFeeding() {
             sensors["Ammonia (NH3)"].value += Math.random() * 0.15 + 0.1;
             sensors["Suspended Solids"].value += Math.random() * 20 + 20;
-            updateStatusMessage(`Fish fed. Ammonia & Solids spiked.`);
+            logEvent(`Fish fed. Ammonia & Solids spiked.`);
         }
 
         function simulateRainfall() {
@@ -173,92 +286,70 @@
             ["Salinity", "Nitrite (NO2)", "Nitrate (NO3)", "Ammonia (NH3)"].forEach(name => {
                 sensors[name].value *= dilutionFactor;
             });
-            updateStatusMessage(`Heavy rain (${rainMm.toFixed(1)}mm). Water diluted.`);
+            logEvent(`Heavy rain (${rainMm.toFixed(1)}mm). Water diluted.`);
         }
 
-        function runAerator() {
-            sensors["Dissolved Oxygen"].value += Math.random() * 2 + 1;
-            updateStatusMessage(`Aerator running. Dissolved Oxygen increased.`);
+        function toggleAerator() {
+            aeratorOn = !aeratorOn;
+            dom.aeratorBtn.textContent = aeratorOn ? 'Turn Off Aerator' : 'Turn On Aerator';
+            dom.aeratorBtn.classList.toggle('bg-orange-500', aeratorOn);
+            dom.aeratorBtn.classList.toggle('hover:bg-orange-600', aeratorOn);
+            dom.aeratorBtn.classList.toggle('bg-green-500', !aeratorOn);
+            dom.aeratorBtn.classList.toggle('hover:bg-green-600', !aeratorOn);
+            logEvent(`Aerator turned ${aeratorOn ? 'ON' : 'OFF'}.`);
         }
 
-        function changeBattery(sensorName) {
-            if (sensors[sensorName]) {
-                sensors[sensorName].battery = 100.0;
-                updateStatusMessage(`Battery replaced for ${sensorName}.`);
-            }
-        }
-
-        function updateStatusMessage(message) {
-            dom.statusMessageEl.textContent = message;
-        }
-
-        // --- Core Simulation Logic ---
         function updateSensor(name, sensor) {
-            if (sensor.battery <= 0) return;
-
-            // Special logic for Dissolved Oxygen
             if (name === "Dissolved Oxygen") {
-                let depletion = 0.1; // Base depletion
+                let change = aeratorOn ? 0.5 : -0.1; // Gain if aerator on, else deplete
                 if (sensors["Ammonia (NH3)"].value > 0.15) {
-                    depletion += 0.15; // Extra depletion if ammonia is high
+                    change -= 0.15; // Extra depletion if ammonia is high
                 }
-                sensor.value -= depletion;
+                sensor.value += change;
             }
 
-            // Natural fluctuation
-            const change = (Math.random() - 0.5) * 2 * sensor.fluctuation;
-            sensor.value += change;
+            const fluctuation = (Math.random() - 0.5) * 2 * sensor.fluctuation;
+            sensor.value += fluctuation;
             sensor.value = Math.max(sensor.minVal, Math.min(sensor.maxVal, sensor.value));
 
-            // Drain battery
-            const drain = sensor.drainRate + (Math.random() - 0.5) * 0.01;
-            sensor.battery = Math.max(0, sensor.battery - drain);
-
-            // Update history for chart
             sensor.history.push(sensor.value);
             if (sensor.history.length > MAX_HISTORY_POINTS) {
                 sensor.history.shift();
             }
         }
 
-        function getStatus(sensor) {
-            if (sensor.battery <= 0) return { text: 'OFFLINE', class: 'status-offline' };
-            const [critMin, critMax] = sensor.criticalRange;
+        function getStatus(name, sensor) {
+            const speciesParams = fishSpecies[currentFish].params[name];
+            const [critMin, critMax] = speciesParams.criticalRange;
             if (sensor.value < critMin || sensor.value > critMax) return { text: 'CRITICAL', class: 'status-critical' };
-            const [safeMin, safeMax] = sensor.safeRange;
+            const [safeMin, safeMax] = speciesParams.safeRange;
             if (sensor.value < safeMin || sensor.value > safeMax) return { text: 'WARNING', class: 'status-warning' };
             return { text: 'OK', class: 'status-ok' };
         }
 
-        // --- Rendering & Charting ---
-        function createInitialTable() {
+        function createSensorCards() {
+            dom.sensorGrid.innerHTML = '';
             for (const name in sensors) {
                 const sensor = sensors[name];
-                const row = document.createElement('tr');
-                row.id = `row-${name.replace(/\s|\(|\)/g, '')}`;
-                row.className = 'border-b border-slate-200';
-                row.innerHTML = `
-                    <td class="p-4 font-medium text-slate-800">${name} <span class="block text-xs text-slate-500 font-normal">${sensor.unit}</span></td>
-                    <td class="p-4 text-xl font-semibold text-slate-900" data-role="value"></td>
-                    <td class="p-4" data-role="status"></td>
-                    <td class="p-4">
-                        <div class="chart-container">
+                const card = document.createElement('div');
+                card.className = 'card flex flex-col justify-between';
+                card.id = `card-${name.replace(/\s|\(|\)/g, '')}`;
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-semibold text-slate-600 flex items-center gap-2">${sensorIcons[name] || ''} ${name}</h3>
+                            <p class="text-sm font-bold" data-role="status"></p>
+                        </div>
+                        <p class="text-4xl font-bold text-slate-800 my-2" data-role="value"></p>
+                    </div>
+                    <div class="flex-grow flex flex-col justify-end">
+                        <p class="text-xs text-slate-400 mb-1 text-right">${sensor.unit}</p>
+                        <div class="h-24 w-full">
                             <canvas id="chart-${name.replace(/\s|\(|\)/g, '')}"></canvas>
                         </div>
-                    </td>
-                    <td class="p-4">
-                        <div class="flex items-center gap-2">
-                            <div class="w-full battery-bar-outer">
-                                <div class="battery-bar-inner" data-role="battery-bar"></div>
-                            </div>
-                            <span class="text-sm font-semibold w-12 text-right" data-role="battery-text"></span>
-                        </div>
-                    </td>
-                    <td class="p-4 text-center">
-                        <button class="btn change-battery-btn bg-emerald-500 text-white text-xs font-semibold py-1 px-2 rounded-md hover:bg-emerald-600" data-sensor-name="${name}">Replace</button>
-                    </td>
+                    </div>
                 `;
-                dom.tableBody.appendChild(row);
+                dom.sensorGrid.appendChild(card);
             }
         }
 
@@ -273,79 +364,164 @@
                         datasets: [{
                             data: sensor.history,
                             borderColor: '#3b82f6',
-                            borderWidth: 2,
+                            borderWidth: 2.5,
                             pointRadius: 0,
-                            tension: 0.4
+                            tension: 0.4,
+                            fill: true,
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)'
                         }]
                     },
                     options: {
                         responsive: true, maintainAspectRatio: false,
-                        scales: { x: { display: false }, y: { display: false } },
-                        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                        scales: { 
+                            x: { display: false }, 
+                            y: { 
+                                display: false,
+                                beginAtZero: false
+                            } 
+                        },
+                        plugins: { 
+                            legend: { display: false }, 
+                            tooltip: { 
+                                enabled: true,
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return ' ' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                            } 
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
                     }
                 });
             }
         }
-        
+
         function updateDashboard() {
+            let totalHealthScore = 0;
+            let alertCount = 0;
+            dom.alertPanel.innerHTML = '';
+
             for (const name in sensors) {
                 const sensor = sensors[name];
-                const row = document.getElementById(`row-${name.replace(/\s|\(|\)/g, '')}`);
-                const status = getStatus(sensor);
-                
-                let valueText = '---';
-                if (sensor.battery > 0) {
-                    const decimalPlaces = (name.includes("Ammonia") || name.includes("Nitrite")) ? 4 : 2;
-                    valueText = sensor.value.toFixed(decimalPlaces);
+                const card = document.getElementById(`card-${name.replace(/\s|\(|\)/g, '')}`);
+                const status = getStatus(name, sensor);
+
+                const decimalPlaces = (name.includes("Ammonia") || name.includes("Nitrite")) ? 3 : 2;
+                const valueEl = card.querySelector('[data-role="value"]');
+                if (valueEl.textContent !== sensor.value.toFixed(decimalPlaces)) {
+                    valueEl.textContent = sensor.value.toFixed(decimalPlaces);
+                    valueEl.classList.add('value-pop');
+                    valueEl.addEventListener('animationend', () => valueEl.classList.remove('value-pop'), { once: true });
                 }
                 
-                row.querySelector('[data-role="value"]').textContent = valueText;
-                row.querySelector('[data-role="status"]').innerHTML = `<span class="${status.class}">${status.text}</span>`;
-                
-                const batteryBar = row.querySelector('[data-role="battery-bar"]');
-                const batteryText = row.querySelector('[data-role="battery-text"]');
-                const batteryBtn = row.querySelector('.change-battery-btn');
+                const statusEl = card.querySelector('[data-role="status"]');
+                statusEl.textContent = status.text;
+                statusEl.className = `text-sm font-bold ${status.class}`;
 
-                batteryBar.style.width = `${sensor.battery}%`;
-                batteryBar.className = `battery-bar-inner ${sensor.battery < 20 ? 'bg-red-500' : sensor.battery < 50 ? 'bg-yellow-500' : 'bg-green-500'}`;
-                batteryText.textContent = `${sensor.battery.toFixed(1)}%`;
-                batteryBtn.disabled = sensor.battery >= 99.9;
+                let chartColor = '#0284c7'; // Light Blue 600
+                if (status.class === 'status-warning') {
+                    totalHealthScore -= 5;
+                    alertCount++;
+                    addAlert(name, 'warning');
+                    chartColor = '#f97316'; // Orange 500
+                } else if (status.class === 'status-critical') {
+                    totalHealthScore -= 15;
+                    alertCount++;
+                    addAlert(name, 'critical');
+                    chartColor = '#dc2626'; // Red 600
+                }
 
-                // Update chart data
                 if (sensor.chart) {
                     sensor.chart.data.datasets[0].data = sensor.history;
-                    sensor.chart.update('none'); // 'none' for no animation
+                    sensor.chart.data.datasets[0].borderColor = chartColor;
+                    sensor.chart.data.datasets[0].backgroundColor = `${chartColor}1A`; // Add alpha for fill
+                    sensor.chart.update('none');
                 }
+            }
+
+            const overallHealth = Math.max(0, 100 + totalHealthScore);
+            dom.pondHealth.textContent = `${overallHealth.toFixed(0)}%`;
+            dom.pondHealth.className = `font-bold text-4xl mt-1 ${overallHealth > 85 ? 'text-green-500' : overallHealth > 60 ? 'text-orange-500' : 'text-red-500'}`;
+            
+            if (alertCount === 0) {
+                dom.alertPanel.innerHTML = '<p class="text-slate-400">No active alerts. System is nominal.</p>';
+            }
+            
+            updatePondVisuals();
+        }
+        
+        function addAlert(sensorName, level) {
+            const alertEntry = document.createElement('div');
+            alertEntry.className = `p-2 rounded-md ${level === 'critical' ? 'bg-red-100' : 'bg-orange-100'}`;
+            alertEntry.innerHTML = `<p class="font-semibold text-slate-700">${sensorIcons[sensorName] || ''} ${sensorName}</p><p class="text-sm ${level === 'critical' ? 'text-red-600' : 'text-orange-600'}">is at a ${level.toUpperCase()} level.</p>`;
+            dom.alertPanel.appendChild(alertEntry);
+        }
+
+        function updatePondVisuals() {
+            // Water clarity
+            const solids = sensors["Suspended Solids"].value;
+            const ammonia = sensors["Ammonia (NH3)"].value;
+            const waterClarity = Math.max(0.3, 1 - (solids / 250 + ammonia / 1));
+            dom.pondVisual.style.setProperty('--water-opacity', waterClarity);
+            
+            const r = Math.round(37 + (1 - waterClarity) * 50);
+            const g = Math.round(99 - (1 - waterClarity) * 40);
+            const b = Math.round(235 - (1 - waterClarity) * 30);
+            dom.pondVisual.style.background = `linear-gradient(180deg, #0ea5e9 0%, rgb(${r}, ${g}, ${b}) 100%)`;
+
+
+            // Bubbles for aerator
+            const existingBubbles = dom.pondVisual.querySelectorAll('.bubble');
+            if (aeratorOn && existingBubbles.length < 20) {
+                for(let i=0; i<5; i++) {
+                    const bubble = document.createElement('div');
+                    const size = `${Math.random() * 15 + 5}px`;
+                    bubble.className = 'bubble';
+                    bubble.style.left = `${Math.random() * 95}%`;
+                    bubble.style.width = size;
+                    bubble.style.height = size;
+                    bubble.style.animationDuration = `${Math.random() * 6 + 4}s`;
+                    bubble.style.animationDelay = `${Math.random() * 4}s`;
+                    dom.pondVisual.appendChild(bubble);
+                }
+            } else if (!aeratorOn) {
+                existingBubbles.forEach(b => b.remove());
             }
         }
 
-        // --- Initialization ---
+        function changeFishSpecies() {
+            currentFish = dom.fishSelect.value;
+            const species = fishSpecies[currentFish];
+            dom.fishName.textContent = species.name;
+            dom.fishImage.src = species.image;
+            logEvent(`Monitoring parameters updated for ${species.name}.`);
+            updateDashboard();
+        }
+
         function init() {
-            createInitialTable();
+            createSensorCards();
             createCharts();
+            changeFishSpecies();
 
             dom.feedBtn.addEventListener('click', simulateFeeding);
             dom.rainBtn.addEventListener('click', simulateRainfall);
-            dom.aeratorBtn.addEventListener('click', runAerator);
+            dom.aeratorBtn.addEventListener('click', toggleAerator);
+            dom.fishSelect.addEventListener('change', changeFishSpecies);
 
-            dom.tableBody.addEventListener('click', (event) => {
-                if (event.target.classList.contains('change-battery-btn')) {
-                    changeBattery(event.target.dataset.sensorName);
-                }
-            });
+            logEvent("Simulation started. System is nominal.");
 
-            let simulationInterval = setInterval(() => {
-                let activeSensors = 0;
+            setInterval(() => {
                 for (const name in sensors) {
                     updateSensor(name, sensors[name]);
-                    if (sensors[name].battery > 0) activeSensors++;
                 }
                 updateDashboard();
-
-                if (activeSensors === 0) {
-                    updateStatusMessage('All sensors are offline. Simulation ended.');
-                    clearInterval(simulationInterval);
-                }
             }, SIMULATION_INTERVAL_MS);
         }
 
