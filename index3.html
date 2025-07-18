@@ -107,16 +107,21 @@
         <!-- Header -->
         <header class="mb-8 flex justify-between items-center">
             <div>
-                <h1 class="text-3xl sm:text-4xl font-bold text-slate-800">Smart Aqua-Farm Dashboard</h1>
+                <h1 id="dashboard-title" class="text-3xl sm:text-4xl font-bold text-slate-800"></h1>
                 <p class="text-slate-500 mt-1">Advanced real-time pond monitoring and management.</p>
             </div>
             <div class="flex items-center gap-4">
-                <label for="fish-select" class="text-sm font-medium">Fish Species:</label>
-                <select id="fish-select" class="bg-white border border-slate-300 rounded-md px-3 py-2 text-slate-700 focus:ring-2 focus:ring-sky-500 focus:outline-none shadow-sm">
-                    <option value="tilapia">Tilapia</option>
-                    <option value="catfish">Catfish</option>
-                    <option value="trout">Trout</option>
-                </select>
+                <a href="index.html" class="btn bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 px-4 py-2">
+                    &larr; Back to Ponds
+                </a>
+                <div class="flex items-center gap-2">
+                    <label for="fish-select" class="text-sm font-medium">Fish Species:</label>
+                    <select id="fish-select" class="bg-white border border-slate-300 rounded-md px-3 py-2 text-slate-700 focus:ring-2 focus:ring-sky-500 focus:outline-none shadow-sm">
+                        <option value="tilapia">Tilapia</option>
+                        <option value="catfish">Catfish</option>
+                        <option value="trout">Trout</option>
+                    </select>
+                </div>
             </div>
         </header>
 
@@ -176,6 +181,12 @@
         const SIMULATION_INTERVAL_MS = 2000;
         const MAX_HISTORY_POINTS = 30;
 
+        const pondDataStore = {
+            1: { name: "Alpha Pond", baseSpecies: 'tilapia', offsets: { "Dissolved Oxygen": 0.2, "pH": -0.1, "Ammonia (NH3)": 0.01, "Nitrite (NO2)": 0.05, "Nitrate (NO3)": 2, "Suspended Solids": 5, "Salinity": 0.1, "Water Level": -0.1 } },
+            2: { name: "Beta Pond", baseSpecies: 'catfish', offsets: { "Dissolved Oxygen": -0.5, "pH": 0.2, "Ammonia (NH3)": 0.05, "Nitrite (NO2)": -0.02, "Nitrate (NO3)": -5, "Suspended Solids": 10, "Salinity": -0.2, "Water Level": 0.2 } },
+            3: { name: "Gamma Pond", baseSpecies: 'trout', offsets: { "Dissolved Oxygen": 1.0, "pH": 0, "Ammonia (NH3)": -0.02, "Nitrite (NO2)": 0, "Nitrate (NO3)": 10, "Suspended Solids": -10, "Salinity": 0, "Water Level": 0.05 } }
+        };
+
         const sensorIcons = {
             "Dissolved Oxygen": '<i class="fas fa-wind text-sky-400"></i>',
             "pH": '<i class="fas fa-flask text-indigo-400"></i>',
@@ -190,7 +201,7 @@
         const fishSpecies = {
             tilapia: {
                 name: "Tilapia",
-                image: "https://purepng.com/public/uploads/large/purepng.com-tilapia-fishtilapia-fishcombre-cichlid-family-tilapiines-2315223298628jbiw.png",
+                image: "https://www.seafoodwatch.org/globalassets/sfw-data-blocks/species/tilapia/blue-tilapia.png",
                 params: {
                     "Dissolved Oxygen": { safeRange: [5.0, 10.0], criticalRange: [3.0, 12.0] },
                     "pH": { safeRange: [6.5, 9.0], criticalRange: [6.0, 9.5] },
@@ -204,7 +215,7 @@
             },
             catfish: {
                 name: "Catfish",
-                image: "https://www.pngall.com/wp-content/uploads/2016/04/Catfish-PNG-Clipart.png",
+                image: "https://static.vecteezy.com/system/resources/thumbnails/065/386/938/small_2x/raw-whole-catfish-full-body-top-view-on-isolated-background-for-cooking-seafood-market-and-aquatic-biology-reference-png.png",
                 params: {
                     "Dissolved Oxygen": { safeRange: [4.0, 9.0], criticalRange: [2.5, 11.0] },
                     "pH": { safeRange: [6.8, 8.2], criticalRange: [6.2, 8.8] },
@@ -218,7 +229,7 @@
             },
             trout: {
                 name: "Trout",
-                image: "https://pngimg.com/uploads/trout/trout_PNG1.png",
+                image: "https://png.pngtree.com/png-clipart/20230421/original/pngtree-a-brown-trout-fish-png-image_9072757.png",
                 params: {
                     "Dissolved Oxygen": { safeRange: [6.5, 12.0], criticalRange: [5.0, 14.0] },
                     "pH": { safeRange: [6.7, 8.0], criticalRange: [6.0, 8.5] },
@@ -506,6 +517,20 @@
         }
 
         function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const pondId = urlParams.get('pondId') || '1';
+            const pondInfo = pondDataStore[pondId];
+
+            document.getElementById('dashboard-title').textContent = `${pondInfo.name} Dashboard`;
+            dom.fishSelect.value = pondInfo.baseSpecies;
+
+            // Apply offsets to base sensor values
+            for (const sensorName in pondInfo.offsets) {
+                if (sensors[sensorName]) {
+                    sensors[sensorName].value += pondInfo.offsets[sensorName];
+                }
+            }
+
             createSensorCards();
             createCharts();
             changeFishSpecies();
